@@ -1,0 +1,6 @@
+*.code-workspace
+
+cloud-init/
+tests/
+
+*.zip

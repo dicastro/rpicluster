@@ -1,0 +1,39 @@
+#cloud-config
+
+preserve_hostname: false
+hostname: {{ hostvars[inventory_hostname]['custom_hostname'] }}
+fqdn: {{ hostvars[inventory_hostname]['custom_hostname'] }}.test
+
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+
+manage_resolv_conf: true
+resolv_conf:
+  nameservers: ['8.8.4.4', '8.8.8.8']
+
+users:
+## Disable creation of default user
+#- default
+## Create user
+- name: rpicluster
+  homedir: /home/rpicluster
+  lock_passwd: true
+  shell: /bin/bash
+  # Generate key with command: ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+  ssh_authorized_keys:
+    - {{ ssh_key }}
+  sudo:
+    - ALL=(ALL) NOPASSWD:ALL
+
+## Disable password authentication with the SSH daemon
+ssh_pwauth: false
+
+## Install additional packages on first boot
+packages:
+- curl
+- vim
+- git
+- aptitude
+
+final_message: "The system is finally up, after $UPTIME seconds"

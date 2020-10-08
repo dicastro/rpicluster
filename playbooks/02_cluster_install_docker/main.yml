@@ -1,0 +1,8 @@
+---
+
+- name: install docker in all nodes of raspberry pi cluster
+  hosts: rpicluster
+  become: true
+
+  roles:
+    - role: docker

@@ -1,0 +1,107 @@
+---
+
+- name: Copy K3s service file
+  register: k3s_service
+  template:
+    src: "k3s.service.j2"
+    dest: "{{ systemd_dir }}/k3s.service"
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Enable and check K3s service
+  systemd:
+    name: k3s
+    daemon_reload: true
+    ## original
+    # state: restarted
+    state: started
+    enabled: true
+
+- name: Wait for node-token
+  wait_for:
+    path: /var/lib/rancher/k3s/server/node-token
+
+- name: Register node-token file access mode
+  stat:
+    path: /var/lib/rancher/k3s/server
+  register: p
+
+## commented
+# - name: Change file access node-token
+#   file:
+#     path: /var/lib/rancher/k3s/server
+#     mode: "g+rx,o+rx"
+
+- name: Read node-token from master
+  slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: node_token
+
+- name: Store Master node-token
+  set_fact:
+    token: "{{ node_token.content | b64decode | regex_replace('\n', '') }}"
+
+## commented
+# - name: Restore node-token file access
+#   file:
+#     path: /var/lib/rancher/k3s/server
+#     mode: "{{ p.stat.mode }}"
+
+- name: Create directory .kube
+  file:
+    path: ~{{ ansible_user }}/.kube
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: 0755
+
+## added
+- name: Backup original config file
+  copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: /etc/rancher/k3s/k3s.yaml.BCK
+    remote_src: true
+    owner: "root"
+    mode: 0600
+  register: kube_config_backup
+
+- name: Copy config file to user home directory
+  copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: ~{{ ansible_user }}/.kube/config
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    mode: 0755
+  ## added
+  register: kube_config_copy
+  when:
+    - kube_config_backup is changed
+
+- name: Replace https://localhost:6443 by https://master-ip:6443
+  command: >-
+    k3s kubectl config set-cluster default
+      --server=https://{{ master_ip }}:6443
+      --kubeconfig ~{{ ansible_user }}/.kube/config
+  changed_when: true
+  ## added
+  when:
+    - kube_config_copy is changed
+
+- name: Set KUBECONFIG environment variable
+  lineinfile:
+    path: "/home/{{ ansible_user }}/.profile"
+    regexp: "^export KUBECONFIG="
+    line: "export KUBECONFIG=/home/{{ ansible_user }}/.kube/config"
+    state: present
+
+- name: Create kubectl symlink
+  file:
+    src: /usr/local/bin/k3s
+    dest: /usr/local/bin/kubectl
+    state: link
+
+- name: Create crictl symlink
+  file:
+    src: /usr/local/bin/k3s
+    dest: /usr/local/bin/crictl
+    state: link

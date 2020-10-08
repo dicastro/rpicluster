@@ -1,0 +1,24 @@
+---
+
+k3s_version: v1.19.2+k3s1
+
+k3s_binary_map:
+  "x86_64": "k3s"
+  "aarch64": "k3s-arm64"
+  "aarch": "k3s-arm64"
+  "armhf": "k3s-armhf"
+  "armv7l": "k3s-armhf"
+
+k3s_binary_name: "{{ k3s_binary_map[ansible_architecture] }}"
+
+k3s_checksum_map:
+  "k3s": "sha256:1d2d845a9ec45545479ef75bad77d0837e03edb18be3b5f4186fd86762f22a60"
+  "k3s-arm64": "sha256:7ead255f16227ddcc94347fde49e4e9f341751a69cf7c207bf1040e8d436c61b"
+  "k3s-arm": "sha256:30c5853d4a9659003d604fb5204f42a2da19e6224e3f6147c2b93139ce55deb7"
+
+k3s_binary_checksum: "{{ k3s_checksum_map[k3s_binary_name] }}"
+
+systemd_dir: /etc/systemd/system
+master_ip: "{{ hostvars[groups['k3s_master'][0]]['ansible_host'] | default(groups['k3s_master'][0]) }}"
+extra_server_args: ""
+extra_agent_args: ""

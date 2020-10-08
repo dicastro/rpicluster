@@ -1,0 +1,10 @@
+---
+
+- name: poweroff cluster
+  hosts: rpicluster
+  gather_facts: false
+  ignore_errors: true
+  ignore_unreachable: true
+  become: true
+  tasks:
+    - command: "shutdown -h 1"
