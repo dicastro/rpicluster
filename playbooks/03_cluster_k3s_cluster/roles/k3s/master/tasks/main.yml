@@ -13,9 +13,7 @@
   systemd:
     name: k3s
     daemon_reload: true
-    ## original
-    # state: restarted
-    state: started
+    state: restarted
     enabled: true
 
 - name: Wait for node-token

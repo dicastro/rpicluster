@@ -1,0 +1,8 @@
+[masters]
+rpicluster01 hostname=rpicluster01 ansible_host=192.168.86.51 ansible_user=rpicluster ansible_ssh_private_key_file=~/.ssh/rpicluster.test
+
+[workers]
+rpicluster02 hostname=rpicluster02 ansible_host=192.168.86.52 ansible_user=rpicluster ansible_ssh_private_key_file=~/.ssh/rpicluster.test
+rpicluster03 hostname=rpicluster03 ansible_host=192.168.86.53 ansible_user=rpicluster ansible_ssh_private_key_file=~/.ssh/rpicluster.test
+rpicluster04 hostname=rpicluster04 ansible_host=192.168.86.54 ansible_user=rpicluster ansible_ssh_private_key_file=~/.ssh/rpicluster.test
+rpicluster05 hostname=rpicluster05 ansible_host=192.168.86.55 ansible_user=rpicluster ansible_ssh_private_key_file=~/.ssh/rpicluster.test

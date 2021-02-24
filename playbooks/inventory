@@ -3,7 +3,11 @@
 
 [rpicluster01:vars]
 custom_hostname=rpicluster01
-
+lxd_bridgeconf_ipv4_addr=10.0.51.1
+lxd_bridgeconf_ipv4_netmask=255.255.255.0
+lxd_bridgeconf_ipv4_network=10.0.51.1/24
+lxd_bridgeconf_ipv4_dhcp_range=10.0.51.2-10.0.51.254
+lxd_bridgeconf_ipv4_dhcp_max=253
 
 [rpicluster02]
 192.168.86.52

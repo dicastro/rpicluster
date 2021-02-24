@@ -1,0 +1,107 @@
+---
+- name: configure lxd bridge
+  template:
+    src: lxd-bridge.j2
+    dest: /etc/default/lxd-bridge
+    mode: 0644
+    backup: yes
+  notify:
+    - restart lxd-bridge
+  register: lxdconf
+
+- name: force restart of lxd to have working network
+  service:
+    name: snap.lxd.daemon
+    state: restarted
+  when: >
+    lxdconf.changed and
+    (ansible_virtualization_type is not defined or
+      not (ansible_virtualization_type == "lxc" or ansible_virtualization_type == "docker")
+    )
+
+- name: Optional configure lxd dnsmasq
+  block:
+    - name: create config dir
+      file: dest=/etc/lxc state=directory mode=0755
+
+    - name: configure static ip inside dnsmasq
+      template: src=lxc-dnsmasq-hosts.conf.j2 dest=/etc/lxc/lxc-dnsmasq-hosts.conf mode=0644 backup=yes
+      when: lxd_dnsmasq_staticips is defined and lxd_dnsmasq_staticips != []
+  when: lxd_dnsmasq_conf is defined and lxd_dnsmasq_conf
+
+- name: increase subuid/gid
+  replace:
+    dest: "{{ item }}"
+    regexp: '^(.*):([0-9]*):([0-9]*)$'
+    replace: "\\1:{{ lxd_subid_start }}:{{ lxd_subid_range }}"
+    backup: yes
+  with_items:
+    - /etc/subuid
+    - /etc/subgid
+
+- name: ensure lxd service is started and enabled
+  service:
+    name: snap.lxd.daemon
+    state: started
+    enabled: yes
+  when: >
+    (ansible_virtualization_type is not defined or
+      not (ansible_virtualization_type == "lxc" or ansible_virtualization_type == "docker")
+    )
+
+- name: optional reboot
+  block:
+    - name: Debian | Check if a reboot is required
+      register: file
+      stat: path=/var/run/reboot-required get_md5=no
+
+    - name: Need to reboot system?
+      debug: msg="You will need to reboot system. asked ansible not doing it."
+      when: file.stat.exists is defined and file.stat.exists and lxd_noreboot is defined and lxd_noreboot
+
+    - name: Reboot system
+      command: /sbin/reboot
+      when: file.stat.exists is defined and file.stat.exists and not (lxd_noreboot is defined and lxd_noreboot)
+      async: 0
+      poll: 0
+      ignore_errors: true
+
+    - name: waiting for server to come back
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        state: started
+      delegate_to: localhost
+      become: false
+      when: file.stat.exists is defined and file.stat.exists and not (lxd_noreboot is defined and lxd_noreboot)
+  when: >
+    ansible_os_family | lower == 'debian' and
+    (ansible_virtualization_type is not defined or not (ansible_virtualization_type == "lxc"))
+
+## REVIEW needed: https://github.com/lxc/lxd/blob/master/doc/production-setup.md
+- name: increase fs.inotify.max_user_instances (default 128)
+  sysctl:
+    name: "fs.inotify.max_user_instances"
+    value: "1048576"
+    sysctl_set: yes
+    state: present
+    sysctl_file: /etc/sysctl.d/10-lxd-inotify.conf
+    reload: yes
+  when: >
+    (ansible_virtualization_type is not defined or
+      not (ansible_virtualization_type == "lxc" or ansible_virtualization_type == "docker")
+    )
+
+- name: Configure user.max_user_namespaces
+  sysctl:
+    name: user.max_user_namespaces
+    value: '3883'
+    sysctl_file: /etc/sysctl.d/99-userns.conf
+    reload: yes
+  when: >
+    (
+      (ansible_distribution | lower == 'ubuntu' and ansible_distribution_major_version | int >= 18)
+    )
+    and
+    (ansible_virtualization_type is not defined or
+      not (ansible_virtualization_type == "lxc" or ansible_virtualization_type == "docker")
+    )

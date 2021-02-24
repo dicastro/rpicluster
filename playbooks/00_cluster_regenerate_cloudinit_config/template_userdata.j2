@@ -29,11 +29,18 @@ users:
 ## Disable password authentication with the SSH daemon
 ssh_pwauth: false
 
+# Override ntp with chrony configuration on Ubuntu
+ntp:
+  enabled: true
+  ntp_client: chrony  # Uses cloud-init default chrony configuration
+
 ## Install additional packages on first boot
 packages:
 - curl
+- wget
 - vim
 - git
+- htop
 - aptitude
 
 final_message: "The system is finally up, after $UPTIME seconds"

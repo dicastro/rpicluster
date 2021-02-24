@@ -66,3 +66,9 @@
         src: template_networkconfig.j2
         dest: "../../cloud-init/{{ hostvars[inventory_hostname]['custom_hostname'] }}/network-config"
       delegate_to: localhost
+
+    - name: generate cmdline.txt file from template
+      template:
+        src: template_cmdline.txt.j2
+        dest: "../../cloud-init/{{ hostvars[inventory_hostname]['custom_hostname'] }}/cmdline.txt"
+      delegate_to: localhost

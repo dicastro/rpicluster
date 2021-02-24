@@ -1,0 +1,35 @@
+---
+- name: LXD init
+  block:
+  - name: lxc info
+    command: lxc info
+    register: lxc_info_src0
+    run_once: true
+    changed_when: false
+
+  - name: create lxd-config.yml
+    set_fact:
+      lxdconfig: "{{ lookup('template', 'lxd-config.yml.j2') }}"
+
+  - name: Set temporary lxd-config configuration file
+    copy:
+      dest: /tmp/lxd-config.yml
+      content: "{{ lxdconfig }}"
+
+  - name: lxd init lxd-config.yml
+    command: lxd init --preseed <
+    args:
+      stdin: "{{ lxdconfig }}"
+      creates: "{{ lxd_init_file_test }}"
+    when: >
+      lxc_info_src0.stdout.find('storage: \"\"') != -1
+
+  - name: lxc info
+    command: lxc info
+    register: lxc_info_src
+    run_once: true
+    changed_when: false
+
+  - name: store stdout from lxc info
+    set_fact:
+      lxc_info: "{{ lxc_info_src.stdout | from_yaml }}"

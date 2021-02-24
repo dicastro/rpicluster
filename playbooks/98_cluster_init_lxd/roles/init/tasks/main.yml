@@ -1,0 +1,17 @@
+---
+- include: debian.yml
+  when: ansible_os_family | lower == 'debian'
+
+- include: lxd.yml
+
+- name: Get LXD Version
+  command: lxd --version
+  register: lxd_version_cmd
+  changed_when: false
+
+- name: Extract LXD version
+  set_fact:
+    lxd_version: "{{ lxd_version_cmd.stdout_lines[0] }}"
+
+- include: lxd-init.yml
+  when: lxd_version is version('3.0', operator='ge', strict=True)
